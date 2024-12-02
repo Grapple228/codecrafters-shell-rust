@@ -5,17 +5,34 @@ use std::{
     process,
 };
 
+use tracing::debug;
+
 type Error = Box<dyn std::error::Error>;
 type Result<T> = core::result::Result<T, Error>; // For tests.
 
 fn main() -> Result<()> {
-    print!("$ ");
-    io::stdout().flush()?;
+    shell::init()?;
 
-    // Wait for user input
     let stdin = io::stdin();
-    let mut input = String::new();
-    stdin.read_line(&mut input)?;
+    let mut stdout = io::stdout();
+
+    loop {
+        print!("$ ");
+        stdout.flush()?;
+
+        // Wait for user input
+        let mut input = String::new();
+        stdin.read_line(&mut input)?;
+
+        match input.trim() {
+            "exit" => {
+                return Ok(());
+            }
+            input => {
+                println!("{}: command not found", input);
+            }
+        }
+    }
 
     Ok(())
 }

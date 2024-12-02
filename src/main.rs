@@ -1,25 +1,34 @@
 use std::io::{self, Write};
 
 use shell::{Error, Result};
+use tracing::debug;
+use tracing_subscriber::field::debug;
 
 pub fn report(message: impl Into<String>) {
     eprintln!("Error: {}", message.into());
 }
 
 fn main() -> Result<()> {
-    print!("$ ");
-    io::stdout().flush()?;
+    shell::init()?;
 
-    // Wait for user input
     let stdin = io::stdin();
-    let mut input = String::new();
+    let mut stdout = io::stdout();
 
-    stdin.read_line(&mut input)?;
+    loop {
+        print!("$ ");
+        stdout.flush()?;
 
-    match input.trim() {
-        input => {
-            println!("{}: command not found", input);
-            return Err(Error::UnknownCommand(input.to_string()));
+        // Wait for user input
+        let mut input = String::new();
+        stdin.read_line(&mut input)?;
+
+        match input.trim() {
+            "exit" => {
+                return Ok(());
+            }
+            input => {
+                println!("{}: command not found", input);
+            }
         }
     }
 
