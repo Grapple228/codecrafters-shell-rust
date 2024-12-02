@@ -1,5 +1,10 @@
 // region:    --- Modules
 
+use std::{
+    io::{self, Write},
+    process,
+};
+
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
@@ -30,4 +35,33 @@ pub fn init() -> Result<()> {
     let _ = config();
 
     Ok(())
+}
+
+pub fn run() -> Result<()> {
+    init()?;
+
+    let stdin = io::stdin();
+    let mut stdout = io::stdout();
+
+    loop {
+        print!("$ ");
+        stdout.flush()?;
+
+        // Wait for user input
+        let mut input = String::new();
+        stdin.read_line(&mut input)?;
+
+        match input.trim().split(' ').collect::<Vec<_>>()[..] {
+            ["exit", code] => {
+                process::exit(code.parse()?);
+                return Ok(());
+            }
+            [input, ..] => {
+                println!("{}: command not found", input);
+            }
+            _ => {
+                unreachable!();
+            }
+        }
+    }
 }
