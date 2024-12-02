@@ -17,10 +17,6 @@ pub use error::{Error, Result};
 
 pub struct W<T>(T);
 
-pub fn report(message: impl Into<String>) {
-    eprintln!("Error: {}", message.into());
-}
-
 pub fn init() -> Result<()> {
     // LOGGING INITIALIZATION
     tracing_subscriber::fmt()

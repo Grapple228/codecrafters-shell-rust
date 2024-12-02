@@ -10,6 +10,8 @@ pub enum Error {
     ConfigMissingEnv(&'static str),
     ConfigWrongFormat(&'static str),
 
+    UnknownCommand(String),
+
     // -- Externals
     #[from]
     Io(std::io::Error),
