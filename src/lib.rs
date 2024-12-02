@@ -56,6 +56,9 @@ pub fn run() -> Result<()> {
                 process::exit(code.parse()?);
                 return Ok(());
             }
+            ["echo", message] => {
+                println!("{}", message);
+            }
             [input, ..] => {
                 println!("{}: command not found", input);
             }
