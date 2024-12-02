@@ -11,18 +11,6 @@ REPLs, builtin commands, and more.
 **Note**: If you're viewing this repo on GitHub, head over to
 [codecrafters.io](https://codecrafters.io) to try the challenge.
 
-# Passing the first stage
-
-The entry point for your `shell` implementation is in `src/main.rs`. Study and
-uncomment the relevant code, and push your changes to pass the first stage:
-
-```sh
-git commit -am "pass 1st stage" # any msg
-git push origin master
-```
-
-Time to move on to the next stage!
-
 # Stage 2 & beyond
 
 Note: This section is for stages 2 and beyond.
@@ -33,3 +21,38 @@ Note: This section is for stages 2 and beyond.
    the first time you run it. Subsequent runs will be fast.
 1. Commit your changes and run `git push origin master` to submit your solution
    to CodeCrafters. Test output will be streamed to your terminal.
+
+## Dev setup
+
+Firstly install `cargo-watch`
+
+```sh
+cargo install cargo-watch
+```
+
+### For execution app on save, use command
+
+```sh
+cargo watch -q -c -w src/ -w .cargo/ -x run
+```
+
+### For execution test app on save, use command
+
+```sh
+cargo watch -q -c -w examples/ -w .cargo/ -x "run --example quick-dev"
+```
+
+### For execution tests on save, use command
+
+```sh
+cargo watch -q -c -x "test -q -- --nocapture"
+```
+
+## License
+
+Licensed under either of
+
+- Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
