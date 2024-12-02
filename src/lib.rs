@@ -51,12 +51,15 @@ pub fn run() -> Result<()> {
         let mut input = String::new();
         stdin.read_line(&mut input)?;
 
-        match input.trim().split(' ').collect::<Vec<_>>()[..] {
+        let parts = input.trim().split(' ').collect::<Vec<_>>();
+
+        match parts.as_slice() {
             ["exit", code] => {
                 process::exit(code.parse()?);
                 return Ok(());
             }
-            ["echo", message] => {
+            ["echo", ..] => {
+                let message = parts[1..].join(" ");
                 println!("{}", message);
             }
             [input, ..] => {
