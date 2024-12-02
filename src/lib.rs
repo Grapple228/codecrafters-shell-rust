@@ -1,6 +1,7 @@
 // region:    --- Modules
 
 use std::{
+    fmt::format,
     io::{self, Write},
     process,
 };
@@ -58,6 +59,7 @@ pub fn run() -> Result<()> {
                 process::exit(code.parse()?);
                 return Ok(());
             }
+            ["type", value] => println!("{}", type_info(value)),
             ["echo", ..] => {
                 let message = parts[1..].join(" ");
                 println!("{}", message);
@@ -69,5 +71,13 @@ pub fn run() -> Result<()> {
                 unreachable!();
             }
         }
+    }
+}
+
+fn type_info(value: &str) -> String {
+    match value {
+        "type" | "echo" | "exit" => format!("{} is a shell builtin", value),
+        "cat" => format!("{} is /bin/cat", value),
+        _ => format!("{}: not found", value),
     }
 }
