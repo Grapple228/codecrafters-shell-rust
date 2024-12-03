@@ -1,6 +1,7 @@
 mod error;
 
 pub use error::{Error, Result};
+use tracing::debug;
 
 use std::{
     env,
@@ -63,14 +64,44 @@ impl Shell {
     }
 
     fn cd(&mut self, path: &str) -> Result<()> {
-        if path.starts_with('.') {
-            // relative
-            todo!()
+        let path = if path.starts_with('.') {
+            let current_directory = self.pwd()?;
+
+            debug!("current directory: {}", current_directory);
+
+            let mut current_parts = current_directory.split('/').collect::<Vec<_>>();
+
+            debug!("current_parts: {:?}", current_parts);
+
+            let nav_parts = path.split('/').collect::<Vec<_>>();
+
+            debug!("nav parts: {:?}", nav_parts);
+
+            for part in nav_parts {
+                match part {
+                    ".." => {
+                        current_parts.pop();
+                    }
+                    "." => {
+                        // do nothing
+                    }
+                    "" => {}
+                    folder => {
+                        current_parts.push(folder);
+                    }
+                }
+            }
+
+            current_parts.join("/").to_string()
         } else {
-            // absolute
-            env::set_current_dir(path).map_err(|_| Error::CdProblem(path.to_string()))?;
-            Ok(())
-        }
+            path.to_string()
+        };
+
+        debug!("cd to: {}", path);
+
+        env::set_current_dir(path.clone()).map_err(|_| Error::CdProblem(path.to_string()))?;
+
+        Ok(())
     }
 
     fn pwd(&mut self) -> Result<String> {
