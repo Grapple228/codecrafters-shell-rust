@@ -5,9 +5,20 @@ use std::{
     process,
 };
 
-use shell::{run, Result};
+use shell::{Result, Shell};
 use tracing::debug;
 
 fn main() -> Result<()> {
-    run()
+    shell::init()?;
+
+    let mut shell = Shell::default();
+
+    loop {
+        shell.init()?;
+
+        match shell.process_input() {
+            Ok(_) => (),
+            Err(error) => shell::report(error),
+        }
+    }
 }

@@ -1,13 +1,20 @@
 use std::io::{self, Write};
 
-use shell::{Error, Result};
+use shell::{Error, Result, Shell};
 use tracing::debug;
 use tracing_subscriber::field::debug;
 
-pub fn report(message: impl Into<String>) {
-    eprintln!("Error: {}", message.into());
-}
-
 fn main() -> Result<()> {
-    shell::run()
+    shell::init()?;
+
+    let mut shell = Shell::default();
+
+    loop {
+        shell.init()?;
+
+        match shell.process_input() {
+            Ok(()) => (),
+            Err(error) => shell::report(error),
+        }
+    }
 }

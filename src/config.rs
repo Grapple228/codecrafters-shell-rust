@@ -14,20 +14,24 @@ pub fn config() -> &'static Config {
 
 #[allow(non_snake_case)]
 #[derive(Debug)]
-pub struct Config {}
+pub struct Config {
+    pub path: String,
+}
 
 impl Config {
     fn load_from_env() -> Result<Config> {
-        Ok(Config {})
+        Ok(Config {
+            path: get_env("PATH")?,
+        })
     }
 }
 
-fn _get_env(name: &'static str) -> Result<String> {
+fn get_env(name: &'static str) -> Result<String> {
     env::var(name).map_err(|_| Error::ConfigMissingEnv(name))
 }
 
 fn _get_env_parse<T: FromStr>(name: &'static str) -> Result<T> {
-    let val = _get_env(name)?;
+    let val = get_env(name)?;
 
     val.parse::<T>().map_err(|_| Error::ConfigWrongFormat(name))
 }

@@ -1,20 +1,17 @@
-//! Main Crate Error
-
 use derive_more::derive::From;
-
-use crate::shell;
 
 pub type Result<T> = core::result::Result<T, Error>;
 
 #[derive(Debug, From)]
 pub enum Error {
-    // -- Config
-    ConfigMissingEnv(&'static str),
-    ConfigWrongFormat(&'static str),
+    CommandNotFound(String),
+    TypeNotFound(String),
 
-    // -- Modules
+    // -- Externals
     #[from]
-    ShellError(shell::Error),
+    Io(std::io::Error),
+    #[from]
+    ParseIntError(std::num::ParseIntError),
 }
 
 // region:    --- Error Boilerplate
