@@ -7,6 +7,7 @@ pub enum Error {
     CommandNotFound(String),
     TypeNotFound(String),
     ExecuteProblem(String),
+    CdProblem(String),
 
     // -- Externals
     #[from]

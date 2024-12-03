@@ -3,7 +3,9 @@ mod error;
 pub use error::{Error, Result};
 
 use std::{
-    env, fs,
+    env,
+    fmt::format,
+    fs,
     io::{self, Write},
     os::unix::process::CommandExt,
     path::{self, PathBuf},
@@ -47,6 +49,7 @@ impl Shell {
                 let message = parts[1..].join(" ");
                 println!("{}", message);
             }
+            ["cd", path] => self.cd(path)?,
             ["pwd"] => println!("{}", self.pwd()?),
             [input, ..] => {
                 return self.execute(input, &parts[1..]);
@@ -57,6 +60,17 @@ impl Shell {
         }
 
         Ok(())
+    }
+
+    fn cd(&mut self, path: &str) -> Result<()> {
+        if path.starts_with('.') {
+            // relative
+            todo!()
+        } else {
+            // absolute
+            env::set_current_dir(path).map_err(|_| Error::CdProblem(path.to_string()))?;
+            Ok(())
+        }
     }
 
     fn pwd(&mut self) -> Result<String> {

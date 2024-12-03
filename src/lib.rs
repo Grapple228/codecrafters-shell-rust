@@ -46,6 +46,9 @@ pub fn report(error: shell::Error) {
             println!("{}: command not found", command);
         }
         shell::Error::ExecuteProblem(message) => println!("{}: execute problem", message),
+        shell::Error::CdProblem(path) => {
+            println!("cd: {}: No such file or directory", path)
+        }
         shell::Error::TypeNotFound(value) => println!("{}: not found", value),
         shell::Error::Io(error) => todo!(),
         shell::Error::ParseIntError(parse_int_error) => todo!(),
