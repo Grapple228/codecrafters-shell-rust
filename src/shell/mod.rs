@@ -3,11 +3,11 @@ mod error;
 pub use error::{Error, Result};
 
 use std::{
-    fs,
+    env, fs,
     io::{self, Write},
     os::unix::process::CommandExt,
     path::{self, PathBuf},
-    process,
+    process::{self, Stdio},
 };
 
 use crate::config;
@@ -47,6 +47,7 @@ impl Shell {
                 let message = parts[1..].join(" ");
                 println!("{}", message);
             }
+            ["pwd"] => println!("{}", self.pwd()?),
             [input, ..] => {
                 return self.execute(input, &parts[1..]);
             }
@@ -58,6 +59,10 @@ impl Shell {
         Ok(())
     }
 
+    fn pwd(&mut self) -> Result<String> {
+        Ok(env::current_dir()?.display().to_string())
+    }
+
     fn execute(&mut self, command: &str, args: &[&str]) -> Result<()> {
         for path in Self::get_path() {
             if let Ok(true) = fs::exists(path.clone()) {
@@ -65,7 +70,11 @@ impl Shell {
 
                 let path = PathBuf::from(path);
                 if path.is_file() {
-                    match std::process::Command::new(path).args(args).spawn() {
+                    match std::process::Command::new(path)
+                        .args(args)
+                        .stdout(Stdio::piped())
+                        .spawn()
+                    {
                         Ok(c) => match c.wait_with_output() {
                             Ok(output) => {
                                 print!("{}", String::from_utf8_lossy(&output.stdout));
@@ -99,8 +108,10 @@ impl Shell {
     }
 
     fn type_info(&mut self, value: &str) -> Result<String> {
+        const BUILTINS: [&str; 4] = ["echo", "type", "exit", "pwd"];
+
         match value {
-            "echo" | "type" | "exit" => Ok(format!("{} is a shell builtin", value)),
+            v if BUILTINS.contains(&v) => Ok(format!("{} is a shell builtin", v)),
             _ => self.system_type_info(value),
         }
     }
