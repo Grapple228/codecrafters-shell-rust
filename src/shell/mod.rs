@@ -11,22 +11,49 @@ use std::{
     os::unix::process::CommandExt,
     path::{self, PathBuf},
     process::{self, Stdio},
+    str::FromStr,
 };
-
-use crate::config;
 
 #[derive(Debug)]
 pub struct Shell {
     stdout: io::Stdout,
     stdin: io::Stdin,
+    path_parts: Vec<String>,
+}
+
+fn get_env(name: &'static str) -> Result<String> {
+    env::var(name).map_err(|_| Error::ConfigMissingEnv(name))
+}
+
+fn _get_env_parse<T: FromStr>(name: &'static str) -> Result<T> {
+    let val = get_env(name)?;
+
+    val.parse::<T>().map_err(|_| Error::ConfigWrongFormat(name))
+}
+
+fn get_path() -> Result<Vec<String>> {
+    let path = get_env("PATH")?;
+
+    Ok(path.split(':').map(|path| path.to_string()).collect())
+}
+
+fn path_to_parts(path: &str) -> Vec<String> {
+    path.split('/').map(|s| s.to_string()).collect()
 }
 
 impl Shell {
-    pub fn default() -> Shell {
-        Shell {
+    pub fn default() -> Result<Shell> {
+        let mut shell = Self {
             stdout: io::stdout(),
             stdin: io::stdin(),
-        }
+            path_parts: Vec::new(),
+        };
+
+        let parts = env::current_dir()?.to_string_lossy().to_string();
+
+        shell.path_parts = path_to_parts(&parts);
+
+        Ok(shell)
     }
 
     pub fn init(&mut self) -> Result<()> {
@@ -34,6 +61,10 @@ impl Shell {
         self.stdout.flush()?;
 
         Ok(())
+    }
+
+    pub fn current_dir(&self) -> String {
+        self.path_parts.join("/")
     }
 
     pub fn process_input(&mut self) -> Result<()> {
@@ -64,40 +95,33 @@ impl Shell {
     }
 
     fn cd(&mut self, path: &str) -> Result<()> {
-        let path = if path.starts_with('.') {
-            let current_directory = self.pwd()?;
-
-            debug!("current directory: {}", current_directory);
-
-            let mut current_parts = current_directory.split('/').collect::<Vec<_>>();
-
-            debug!("current_parts: {:?}", current_parts);
-
+        let path = if !path.starts_with('/') {
             let nav_parts = path.split('/').collect::<Vec<_>>();
-
-            debug!("nav parts: {:?}", nav_parts);
 
             for part in nav_parts {
                 match part {
                     ".." => {
-                        current_parts.pop();
+                        self.path_parts.pop();
                     }
                     "." => {
                         // do nothing
                     }
+                    "~" => {
+                        let home = get_env("HOME")?;
+
+                        self.path_parts = path_to_parts(&home);
+                    }
                     "" => {}
                     folder => {
-                        current_parts.push(folder);
+                        self.path_parts.push(folder.to_string());
                     }
                 }
             }
 
-            current_parts.join("/").to_string()
+            self.current_dir()
         } else {
             path.to_string()
         };
-
-        debug!("cd to: {}", path);
 
         env::set_current_dir(path.clone()).map_err(|_| Error::CdProblem(path.to_string()))?;
 
@@ -105,11 +129,11 @@ impl Shell {
     }
 
     fn pwd(&mut self) -> Result<String> {
-        Ok(env::current_dir()?.display().to_string())
+        Ok(self.current_dir())
     }
 
     fn execute(&mut self, command: &str, args: &[&str]) -> Result<()> {
-        for path in Self::get_path() {
+        for path in get_path()? {
             if let Ok(true) = fs::exists(path.clone()) {
                 let path = format!("{}/{}", path, command);
 
@@ -136,14 +160,6 @@ impl Shell {
         Err(Error::CommandNotFound(command.to_string()))
     }
 
-    fn get_path() -> Vec<String> {
-        config()
-            .path
-            .split(':')
-            .map(|path| path.to_string())
-            .collect()
-    }
-
     fn exit(code: i32) -> ! {
         process::exit(code)
     }
@@ -162,7 +178,7 @@ impl Shell {
     }
 
     fn system_type_info(&mut self, value: &str) -> Result<String> {
-        for path in Self::get_path() {
+        for path in get_path()? {
             let path = format!("{}/{}", path, value);
 
             if let Ok(true) = fs::exists(path.clone()) {

@@ -10,12 +10,10 @@ use tracing::{debug, info};
 use tracing_subscriber::EnvFilter;
 
 // -- Modules
-mod config;
 mod error;
 mod shell;
 
 // -- Flatten
-pub use config::config;
 pub use error::{Error, Result};
 pub use shell::Shell;
 
@@ -33,10 +31,6 @@ pub fn init() -> Result<()> {
 
     info!("Initializing");
 
-    // CONFIG INITIALIZATION
-    info!("Loading config...");
-    _ = config();
-
     Ok(())
 }
 
@@ -52,5 +46,7 @@ pub fn report(error: shell::Error) {
         shell::Error::TypeNotFound(value) => println!("{}: not found", value),
         shell::Error::Io(error) => todo!(),
         shell::Error::ParseIntError(parse_int_error) => todo!(),
+        shell::Error::ConfigMissingEnv(name) => todo!(),
+        shell::Error::ConfigWrongFormat(name) => todo!(),
     }
 }

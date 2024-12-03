@@ -7,7 +7,7 @@ use tracing_subscriber::field::debug;
 fn main() -> Result<()> {
     shell::init()?;
 
-    let mut shell = Shell::default();
+    let mut shell = Shell::default()?;
 
     loop {
         shell.init()?;

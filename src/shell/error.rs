@@ -8,6 +8,8 @@ pub enum Error {
     TypeNotFound(String),
     ExecuteProblem(String),
     CdProblem(String),
+    ConfigMissingEnv(&'static str),
+    ConfigWrongFormat(&'static str),
 
     // -- Externals
     #[from]
