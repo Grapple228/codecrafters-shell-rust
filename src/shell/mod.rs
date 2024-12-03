@@ -5,6 +5,8 @@ pub use error::{Error, Result};
 use std::{
     fs,
     io::{self, Write},
+    os::unix::process::CommandExt,
+    path::{self, PathBuf},
     process,
 };
 
@@ -46,7 +48,7 @@ impl Shell {
                 println!("{}", message);
             }
             [input, ..] => {
-                return Err(Error::CommandNotFound(input.to_string()));
+                return self.execute(input, &parts[1..]);
             }
             _ => {
                 unreachable!();
@@ -54,6 +56,38 @@ impl Shell {
         }
 
         Ok(())
+    }
+
+    fn execute(&mut self, command: &str, args: &[&str]) -> Result<()> {
+        for path in Self::get_path() {
+            if let Ok(true) = fs::exists(path.clone()) {
+                let path = format!("{}/{}", path, command);
+
+                let path = PathBuf::from(path);
+                if path.is_file() {
+                    match std::process::Command::new(path).args(args).spawn() {
+                        Ok(c) => match c.wait_with_output() {
+                            Ok(output) => {
+                                print!("{}", String::from_utf8_lossy(&output.stdout));
+                                return Ok(());
+                            }
+                            Err(_) => break,
+                        },
+                        Err(_) => break,
+                    };
+                };
+            }
+        }
+
+        Err(Error::CommandNotFound(command.to_string()))
+    }
+
+    fn get_path() -> Vec<String> {
+        config()
+            .path
+            .split(':')
+            .map(|path| path.to_string())
+            .collect()
     }
 
     fn exit(code: i32) -> ! {
@@ -72,13 +106,7 @@ impl Shell {
     }
 
     fn system_type_info(&mut self, value: &str) -> Result<String> {
-        let paths = &config()
-            .path
-            .split(':')
-            .map(|path| path.to_string())
-            .collect::<Vec<String>>();
-
-        for path in paths {
+        for path in Self::get_path() {
             let path = format!("{}/{}", path, value);
 
             if let Ok(true) = fs::exists(path.clone()) {

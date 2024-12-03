@@ -45,6 +45,7 @@ pub fn report(error: shell::Error) {
         shell::Error::CommandNotFound(command) => {
             println!("{}: command not found", command);
         }
+        shell::Error::ExecuteProblem(message) => println!("{}: execute problem", message),
         shell::Error::TypeNotFound(value) => println!("{}: not found", value),
         shell::Error::Io(error) => todo!(),
         shell::Error::ParseIntError(parse_int_error) => todo!(),
