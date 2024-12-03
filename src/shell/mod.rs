@@ -120,7 +120,9 @@ impl Shell {
 
             self.current_dir()
         } else {
-            path.to_string()
+            let path = path.to_string();
+            self.path_parts = path_to_parts(&path);
+            path
         };
 
         env::set_current_dir(path.clone()).map_err(|_| Error::CdProblem(path.to_string()))?;
