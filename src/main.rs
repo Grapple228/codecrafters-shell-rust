@@ -13,7 +13,7 @@ fn main() -> Result<()> {
         shell.init()?;
 
         match shell.process_input() {
-            Ok(()) => (),
+            Ok(()) => {}
             Err(error) => shell::report(error),
         }
     }

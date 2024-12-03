@@ -1,10 +1,11 @@
+mod env;
 mod error;
 
 pub use error::{Error, Result};
 use tracing::debug;
+use tracing_subscriber::field::debug;
 
 use std::{
-    env,
     fmt::format,
     fs,
     io::{self, Write},
@@ -21,24 +22,46 @@ pub struct Shell {
     path_parts: Vec<String>,
 }
 
-fn get_env(name: &'static str) -> Result<String> {
-    env::var(name).map_err(|_| Error::ConfigMissingEnv(name))
-}
-
-fn _get_env_parse<T: FromStr>(name: &'static str) -> Result<T> {
-    let val = get_env(name)?;
-
-    val.parse::<T>().map_err(|_| Error::ConfigWrongFormat(name))
-}
-
-fn get_path() -> Result<Vec<String>> {
-    let path = get_env("PATH")?;
-
-    Ok(path.split(':').map(|path| path.to_string()).collect())
-}
-
-fn path_to_parts(path: &str) -> Vec<String> {
+fn split_path(path: &str) -> Vec<String> {
     path.split('/').map(|s| s.to_string()).collect()
+}
+
+fn split_input(input: &str) -> Vec<String> {
+    let mut parts = Vec::new();
+
+    let mut is_quoted = false;
+    let mut current = String::new();
+
+    for (i, c) in input.chars().enumerate() {
+        match c {
+            '\'' => {
+                if is_quoted {
+                    parts.push(current);
+                    current = String::new();
+                }
+                is_quoted = !is_quoted;
+            }
+            ' ' => {
+                if is_quoted {
+                    current.push(c);
+                } else {
+                    if !current.is_empty() {
+                        parts.push(current);
+                        current = String::new();
+                    }
+                }
+            }
+            other => {
+                current.push(other);
+            }
+        }
+    }
+
+    if !current.is_empty() {
+        parts.push(current);
+    }
+
+    parts
 }
 
 impl Shell {
@@ -49,9 +72,7 @@ impl Shell {
             path_parts: Vec::new(),
         };
 
-        let parts = env::current_dir()?.to_string_lossy().to_string();
-
-        shell.path_parts = path_to_parts(&parts);
+        shell.path_parts = split_path(&env::current_dir()?);
 
         Ok(shell)
     }
@@ -71,7 +92,9 @@ impl Shell {
         let mut input = String::new();
         self.stdin.read_line(&mut input)?;
 
-        let parts = input.trim().split(' ').collect::<Vec<_>>();
+        let splitted = split_input(&input.trim());
+
+        let parts = splitted.iter().map(|s| s.as_str()).collect::<Vec<_>>();
 
         match parts.as_slice() {
             [""] => {}
@@ -107,9 +130,9 @@ impl Shell {
                         // do nothing
                     }
                     "~" => {
-                        let home = get_env("HOME")?;
+                        let home = env::get_env("HOME")?;
 
-                        self.path_parts = path_to_parts(&home);
+                        self.path_parts = split_path(&home);
                     }
                     "" => {}
                     folder => {
@@ -121,11 +144,11 @@ impl Shell {
             self.current_dir()
         } else {
             let path = path.to_string();
-            self.path_parts = path_to_parts(&path);
+            self.path_parts = split_path(&path);
             path
         };
 
-        env::set_current_dir(path.clone()).map_err(|_| Error::CdProblem(path.to_string()))?;
+        env::set_current_dir(&path)?;
 
         Ok(())
     }
@@ -135,25 +158,26 @@ impl Shell {
     }
 
     fn execute(&mut self, command: &str, args: &[&str]) -> Result<()> {
-        for path in get_path()? {
+        for path in env::get_path()? {
             if let Ok(true) = fs::exists(path.clone()) {
                 let path = format!("{}/{}", path, command);
 
                 let path = PathBuf::from(path);
                 if path.is_file() {
-                    match std::process::Command::new(path)
-                        .args(args)
-                        .stdout(Stdio::piped())
-                        .spawn()
-                    {
+                    match std::process::Command::new(path).args(args).spawn() {
                         Ok(c) => match c.wait_with_output() {
                             Ok(output) => {
+                                debug!("here");
                                 print!("{}", String::from_utf8_lossy(&output.stdout));
                                 return Ok(());
                             }
-                            Err(_) => break,
+                            Err(_) => {
+                                break;
+                            }
                         },
-                        Err(_) => break,
+                        Err(_) => {
+                            break;
+                        }
                     };
                 };
             }
@@ -180,7 +204,7 @@ impl Shell {
     }
 
     fn system_type_info(&mut self, value: &str) -> Result<String> {
-        for path in get_path()? {
+        for path in env::get_path()? {
             let path = format!("{}/{}", path, value);
 
             if let Ok(true) = fs::exists(path.clone()) {
@@ -191,3 +215,48 @@ impl Shell {
         Err(Error::TypeNotFound(value.to_string()))
     }
 }
+
+// region:    --- Tests
+
+#[cfg(test)]
+mod tests {
+    type Error = Box<dyn std::error::Error>;
+    type Result<T> = core::result::Result<T, Error>; // For tests.
+
+    use super::*;
+
+    #[test]
+    fn test_split_input_ok() -> Result<()> {
+        let input = "";
+
+        assert_eq!(split_input(input), Vec::<String>::new());
+
+        let input = "''";
+
+        assert_eq!(split_input(input), vec![""]);
+
+        let input = "a b c";
+
+        assert_eq!(split_input(input), vec!["a", "b", "c"]);
+
+        let input = "'a b c'";
+
+        assert_eq!(split_input(input), vec!["a b c"]);
+
+        let input = "a 'b c'";
+
+        assert_eq!(split_input(input), vec!["a", "b c"]);
+
+        let input = "a      b";
+
+        assert_eq!(split_input(input), vec!["a", "b"]);
+
+        let input = "'a      b'";
+
+        assert_eq!(split_input(input), vec!["a      b"]);
+
+        Ok(())
+    }
+}
+
+// endregion: --- Tests
