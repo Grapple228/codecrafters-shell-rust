@@ -11,11 +11,15 @@ use tracing_subscriber::EnvFilter;
 
 // -- Modules
 mod error;
+mod extensions;
 mod shell;
+mod splitter;
 
 // -- Flatten
 pub use error::{Error, Result};
+pub use extensions::{CharExt, StringExt};
 pub use shell::Shell;
+pub use splitter::Splitter;
 
 // endregion: --- Modules
 

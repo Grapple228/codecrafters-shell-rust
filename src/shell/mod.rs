@@ -15,6 +15,8 @@ use std::{
     str::FromStr,
 };
 
+use crate::Splitter;
+
 #[derive(Debug)]
 pub struct Shell {
     stdout: io::Stdout,
@@ -24,44 +26,6 @@ pub struct Shell {
 
 fn split_path(path: &str) -> Vec<String> {
     path.split('/').map(|s| s.to_string()).collect()
-}
-
-fn split_input(input: &str) -> Vec<String> {
-    let mut parts = Vec::new();
-
-    let mut is_quoted = false;
-    let mut current = String::new();
-
-    for (i, c) in input.chars().enumerate() {
-        match c {
-            '\'' => {
-                if is_quoted {
-                    parts.push(current);
-                    current = String::new();
-                }
-                is_quoted = !is_quoted;
-            }
-            ' ' => {
-                if is_quoted {
-                    current.push(c);
-                } else {
-                    if !current.is_empty() {
-                        parts.push(current);
-                        current = String::new();
-                    }
-                }
-            }
-            other => {
-                current.push(other);
-            }
-        }
-    }
-
-    if !current.is_empty() {
-        parts.push(current);
-    }
-
-    parts
 }
 
 impl Shell {
@@ -92,7 +56,7 @@ impl Shell {
         let mut input = String::new();
         self.stdin.read_line(&mut input)?;
 
-        let splitted = split_input(&input.trim());
+        let splitted = Splitter::new(&input).get_splitted();
 
         let parts = splitted.iter().map(|s| s.as_str()).collect::<Vec<_>>();
 
@@ -215,48 +179,3 @@ impl Shell {
         Err(Error::TypeNotFound(value.to_string()))
     }
 }
-
-// region:    --- Tests
-
-#[cfg(test)]
-mod tests {
-    type Error = Box<dyn std::error::Error>;
-    type Result<T> = core::result::Result<T, Error>; // For tests.
-
-    use super::*;
-
-    #[test]
-    fn test_split_input_ok() -> Result<()> {
-        let input = "";
-
-        assert_eq!(split_input(input), Vec::<String>::new());
-
-        let input = "''";
-
-        assert_eq!(split_input(input), vec![""]);
-
-        let input = "a b c";
-
-        assert_eq!(split_input(input), vec!["a", "b", "c"]);
-
-        let input = "'a b c'";
-
-        assert_eq!(split_input(input), vec!["a b c"]);
-
-        let input = "a 'b c'";
-
-        assert_eq!(split_input(input), vec!["a", "b c"]);
-
-        let input = "a      b";
-
-        assert_eq!(split_input(input), vec!["a", "b"]);
-
-        let input = "'a      b'";
-
-        assert_eq!(split_input(input), vec!["a      b"]);
-
-        Ok(())
-    }
-}
-
-// endregion: --- Tests

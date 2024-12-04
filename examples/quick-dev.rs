@@ -5,7 +5,7 @@ use std::{
     process,
 };
 
-use shell::{Result, Shell};
+use shell::{Result, Shell, Splitter};
 use tracing::debug;
 
 fn main() -> Result<()> {
