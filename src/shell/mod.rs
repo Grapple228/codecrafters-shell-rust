@@ -56,10 +56,15 @@ impl Shell {
         let mut input = String::new();
         self.stdin.read_line(&mut input)?;
 
-        let splitted = Splitter::new(&input).get_splitted();
+        self.process_command(&input)
+    }
+
+    pub fn process_command(&mut self, input: &str) -> Result<()> {
+        let splitted = Splitter::new(input.trim()).get_splitted();
 
         let parts = splitted.iter().map(|s| s.as_str()).collect::<Vec<_>>();
 
+        // echo "/tmp/foo/f\n8" "/tmp/foo/f\29" "/tmp/foo/f'\'88"
         match parts.as_slice() {
             [""] => {}
             ["exit", code] => Shell::exit(code.parse()?),
@@ -71,6 +76,8 @@ impl Shell {
             ["cd", path] => self.cd(path)?,
             ["pwd"] => println!("{}", self.pwd()?),
             [input, ..] => {
+                debug!("parts: {:#?}", parts);
+
                 return self.execute(input, &parts[1..]);
             }
             _ => {
@@ -131,7 +138,6 @@ impl Shell {
                     match std::process::Command::new(path).args(args).spawn() {
                         Ok(c) => match c.wait_with_output() {
                             Ok(output) => {
-                                debug!("here");
                                 print!("{}", String::from_utf8_lossy(&output.stdout));
                                 return Ok(());
                             }

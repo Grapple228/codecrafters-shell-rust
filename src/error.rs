@@ -11,6 +11,8 @@ pub enum Error {
     // -- Modules
     #[from]
     ShellError(shell::Error),
+    #[from]
+    Io(std::io::Error),
 }
 
 // region:    --- Error Boilerplate
