@@ -53,6 +53,8 @@ impl Shell {
     }
 
     pub fn process_input(&mut self) -> Result<()> {
+        self.init()?;
+
         let mut input = String::new();
         self.stdin.read_line(&mut input)?;
 
@@ -60,7 +62,9 @@ impl Shell {
     }
 
     pub fn process_command(&mut self, input: &str) -> Result<()> {
-        let splitted = Splitter::new(input.trim()).get_splitted();
+        let mut splitter = Splitter::default();
+
+        let splitted = splitter.split(input.trim());
 
         let parts = splitted.iter().map(|s| s.as_str()).collect::<Vec<_>>();
 

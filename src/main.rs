@@ -10,8 +10,6 @@ fn main() -> Result<()> {
     let mut shell = Shell::default()?;
 
     loop {
-        shell.init()?;
-
         match shell.process_input() {
             Ok(()) => {}
             Err(error) => shell::report(error),

@@ -1,1 +1,1 @@
-cat "/tmp/baz/f\n29" "/tmp/baz/f\99" "/tmp/baz/f'\'20"
+cat '/tmp/qux/"f 3"' '/tmp/qux/"f\93"' '/tmp/qux/f35'
