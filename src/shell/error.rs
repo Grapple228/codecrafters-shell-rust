@@ -7,6 +7,11 @@ pub enum Error {
     CommandNotFound(String),
     TypeNotFound(String),
     ExecuteProblem(String),
+    InvalidArgumentsCount {
+        command: String,
+        expected: usize,
+        actual: usize,
+    },
     CdProblem(String),
     ConfigMissingEnv(&'static str),
     ConfigWrongFormat(&'static str),

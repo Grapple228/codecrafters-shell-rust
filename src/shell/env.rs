@@ -6,7 +6,7 @@ pub fn get_env(name: &'static str) -> Result<String> {
     env::var(name).map_err(|_| Error::ConfigMissingEnv(name))
 }
 
-pub fn get_env_parse<T: FromStr>(name: &'static str) -> Result<T> {
+pub fn _get_env_parse<T: FromStr>(name: &'static str) -> Result<T> {
     let val = get_env(name)?;
 
     val.parse::<T>().map_err(|_| Error::ConfigWrongFormat(name))

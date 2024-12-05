@@ -1,8 +1,6 @@
-use std::io::{self, Write};
+use shell::Shell;
 
-use shell::{Error, Result, Shell};
-use tracing::debug;
-use tracing_subscriber::field::debug;
+use shell::Result;
 
 fn main() -> Result<()> {
     shell::init()?;

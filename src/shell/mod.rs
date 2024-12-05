@@ -2,17 +2,12 @@ mod env;
 mod error;
 
 pub use error::{Error, Result};
-use tracing::debug;
-use tracing_subscriber::field::debug;
 
 use std::{
-    fmt::format,
     fs,
     io::{self, Write},
-    os::unix::process::CommandExt,
-    path::{self, PathBuf},
-    process::{self, Stdio},
-    str::FromStr,
+    path::PathBuf,
+    process::{self},
 };
 
 use crate::Splitter;
@@ -70,29 +65,29 @@ impl Shell {
 
         // echo "/tmp/foo/f\n8" "/tmp/foo/f\29" "/tmp/foo/f'\'88"
         match parts.as_slice() {
-            [""] => {}
-            ["exit", code] => Shell::exit(code.parse()?),
-            ["type", value] => println!("{}", self.type_info(value)?),
-            ["echo", ..] => {
-                let message = parts[1..].join(" ");
-                println!("{}", message);
-            }
-            ["cd", path] => self.cd(path)?,
-            ["pwd"] => println!("{}", self.pwd()?),
+            ["exit", ..] => Shell::exit(&parts[1..]),
+            ["type", ..] => println!("{}", self.type_info(&parts[1..])?),
+            ["echo", ..] => self.echo(&parts[1..]),
+            ["cd", ..] => self.cd(&parts[1..])?,
+            ["pwd", ..] => self.pwd()?,
             [input, ..] => {
-                debug!("parts: {:#?}", parts);
-
                 return self.execute(input, &parts[1..]);
             }
-            _ => {
-                unreachable!();
-            }
+            _ => {}
         }
 
         Ok(())
     }
 
-    fn cd(&mut self, path: &str) -> Result<()> {
+    fn cd(&mut self, args: &[&str]) -> Result<()> {
+        let path = args.first();
+
+        if path.is_none() {
+            return Ok(());
+        }
+
+        let path = path.unwrap();
+
         let path = if !path.starts_with('/') {
             let nav_parts = path.split('/').collect::<Vec<_>>();
 
@@ -128,8 +123,9 @@ impl Shell {
         Ok(())
     }
 
-    fn pwd(&mut self) -> Result<String> {
-        Ok(self.current_dir())
+    fn pwd(&mut self) -> Result<()> {
+        println!("{}", self.current_dir());
+        Ok(())
     }
 
     fn execute(&mut self, command: &str, args: &[&str]) -> Result<()> {
@@ -160,16 +156,25 @@ impl Shell {
         Err(Error::CommandNotFound(command.to_string()))
     }
 
-    fn exit(code: i32) -> ! {
+    fn exit(args: &[&str]) -> ! {
+        let code = args.first().and_then(|s| s.parse().ok()).unwrap_or(0);
+
         process::exit(code)
     }
 
-    fn echo(&mut self, message: impl Into<String>) {
-        println!("{}", message.into());
+    fn echo(&mut self, args: &[&str]) {
+        let message = args.join(" ");
+        println!("{}", message);
     }
 
-    fn type_info(&mut self, value: &str) -> Result<String> {
-        const BUILTINS: [&str; 4] = ["echo", "type", "exit", "pwd"];
+    fn type_info(&mut self, args: &[&str]) -> Result<String> {
+        const BUILTINS: [&str; 5] = ["echo", "cd", "type", "exit", "pwd"];
+
+        let value = args.first().ok_or(Error::InvalidArgumentsCount {
+            command: "type".to_string(),
+            expected: 1,
+            actual: 0,
+        })?;
 
         match value {
             v if BUILTINS.contains(&v) => Ok(format!("{} is a shell builtin", v)),

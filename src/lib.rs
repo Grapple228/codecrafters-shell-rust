@@ -1,12 +1,5 @@
 // region:    --- Modules
 
-use std::{
-    fmt::format,
-    io::{self, Write},
-    process,
-};
-
-use tracing::{debug, info};
 use tracing_subscriber::EnvFilter;
 
 // -- Modules
@@ -33,8 +26,6 @@ pub fn init() -> Result<()> {
         .with_env_filter(EnvFilter::from_default_env())
         .init();
 
-    info!("Initializing");
-
     Ok(())
 }
 
@@ -47,10 +38,22 @@ pub fn report(error: shell::Error) {
         shell::Error::CdProblem(path) => {
             println!("cd: {}: No such file or directory", path)
         }
+        shell::Error::InvalidArgumentsCount {
+            command,
+            expected,
+            actual,
+        } => {
+            println!(
+                "{}: invalid number of arguments: expected {}, got {}",
+                command, expected, actual
+            )
+        }
         shell::Error::TypeNotFound(value) => println!("{}: not found", value),
-        shell::Error::Io(error) => todo!(),
-        shell::Error::ParseIntError(parse_int_error) => todo!(),
-        shell::Error::ConfigMissingEnv(name) => todo!(),
-        shell::Error::ConfigWrongFormat(name) => todo!(),
+        shell::Error::Io(error) => println!("{}", error),
+        shell::Error::ParseIntError(error) => println!("{}", error),
+        shell::Error::ConfigMissingEnv(name) => println!("{}: missing environment variable", name),
+        shell::Error::ConfigWrongFormat(name) => {
+            println!("{}: wrong format of environment variable", name)
+        }
     }
 }

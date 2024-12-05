@@ -1,13 +1,7 @@
-use std::{fmt::format, iter::Peekable, str::Chars};
-
-use tracing::{debug, info};
-use tracing_subscriber::field::debug;
-
-use crate::StringExt;
+use std::{iter::Peekable, str::Chars};
 
 #[derive(Debug, Default)]
 pub struct Splitter {
-    current: String,
     parts: Vec<String>,
 }
 
@@ -36,8 +30,6 @@ impl Splitter {
     }
 
     fn no_quoted(&mut self, chars: &mut Peekable<Chars>) {
-        debug!("-- no quoted");
-
         let mut result = Vec::new();
         let mut current = String::new();
         let mut insert_to_prev = chars.peek() != Some(&' ');
@@ -97,8 +89,6 @@ impl Splitter {
     }
 
     fn single_quoted(&mut self, chars: &mut Peekable<Chars>) {
-        debug!("-- single quoted");
-
         chars.next(); // consume quote
 
         let mut substring = String::new();
@@ -117,14 +107,10 @@ impl Splitter {
             }
         }
 
-        debug!("substring: '{}'", substring);
-
         self.push(substring);
     }
 
     fn double_quoted(&mut self, chars: &mut Peekable<Chars>) {
-        debug!("-- double quoted");
-
         chars.next(); // consume quote
 
         let mut substring = String::new();
@@ -155,8 +141,6 @@ impl Splitter {
                 }
             }
         }
-
-        debug!("substring: '{}'", substring);
 
         self.push(substring);
     }
